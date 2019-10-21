@@ -1,49 +1,63 @@
 /* eslint no-unused-labels: "off" */
+/* globals ClickerModifier */
 // Let's make a clicker for the s&g
 document.addEventListener('DOMContentLoaded', function() {
   var clickGameProperties = {
     paused: false,
     clicks: 0,
     production: 0,
-    modifiers: { // Maybe turn this into an object?
+    // Starting values
+    modifiers: {
       clickers: {
         name: 'Auto-Clicker',
-        DOMTarget: undefined,
         count: 0,
         rate: 0.01, // Every Second
-        timeNext: 0,
-        costStarting: 10,
-        costCurrent: 10,
-        costGrowth: function(count) {
-        }
+        cost: 10,
+        growth: function(count) {
+          return 10 + 0.01 * Math.pow(count, 2);
+        },
+        manager: undefined
       },
       farm: {
         name: 'Farm',
-        DOMTarget: undefined,
         count: 0,
         rate: 0.1,
-        timeNext: 0,
-        costStarting: 50,
-        costCurrent: 50,
-        costGrowth: function(count) {
-        }
+        cost: 50,
+        growth: function(count) {
+          return 50 + 0.1 * Math.pow(count, 2);
+        },
+        manager: undefined
       },
       factory: {
         name: 'Factory',
-        DOMTarget: undefined,
         count: 0,
-        rate: 0.15,
-        timeNext: 0,
-        costStarting: 100,
-        costCurrent: 100,
-        costGrowth: function(count) {
-        }
+        rate: 0.2,
+        cost: 100,
+        growth: function(count) {
+          return 100 + 0.2 * Math.pow(count, 2);
+        },
+        manager: undefined
+      },
+      office: {
+        name: 'Office',
+        count: 0,
+        rate: 0.5,
+        cost: 200,
+        growth: function(count) {
+          return 200 + 0.2 * Math.pow(count, 2);
+        },
+        manager: undefined
       }
     },
     modifiersBuy: function(type) {
-      clickGameProperties.modifiers[type].count++;
+      var modifier = clickGameProperties.modifiers[type];
+
+      if (clickGameProperties.production >= modifier.manager.getCost(0)) {
+        clickGameProperties.production -= modifier.manager.getCost(0);
+        clickGameProperties.modifiers[type].manager.buy(1);
+      }
     },
-    updateLogic: function(timeNow) {
+    updateLogic: function(timeNow, timeDelta) {
       var DOMProductCounter = document.getElementById('product-counter');
 
       // Drain the clicks queue
@@ -55,56 +69,59 @@ document.addEventListener('DOMContentLoaded', function() {
       Object.keys(clickGameProperties.modifiers).forEach(function(key) {
         var modifier = clickGameProperties.modifiers[key];
 
-        // Staggered is bad
-        /*
-        if (timeNow >= modifier.timeNext) {
-          clickGameProperties.production += modifier.rate * modifier.count;
-          modifier.timeNext = timeNow + (1000 - 1000 * modifier.rate);
-        }
-        */
+        clickGameProperties.production += modifier.manager.produce(timeDelta);
       });
 
       DOMProductCounter.innerHTML = clickGameProperties.production.toFixed(2);
     },
     updateDisplay: function() {
+      // Update each auto-something
       Object.keys(clickGameProperties.modifiers).forEach(function(key) {
         var modifier = clickGameProperties.modifiers[key];
         var DOMCount = modifier.DOMTarget.querySelector('.click-auto__count');
+        var DOMCost = modifier.DOMTarget.querySelector('.click-auto__cost');
 
-        DOMCount.innerHTML = modifier.count;
+        DOMCount.innerHTML = modifier.manager.count;
+        DOMCost.innerHTML = modifier.manager.getCost(0).toFixed(2);
+
+        if (clickGameProperties.production < modifier.manager.getCost(0)) {
+          modifier.DOMTarget.classList.add('expensive');
+        } else {
+          modifier.DOMTarget.classList.remove('expensive');
+        }
       });
     },
-    update: function(timeNow) {
-      clickGameProperties.updateLogic(timeNow);
-    },
-    // Lifted from my game idea server thing
-    loopFunction: (function() {
-      var FPS = 60;
-      var timeLogic = 1000 / FPS;
-      var timeNextRaw = performance.now(); // Wow this was affected by spectre
-      var timeNext = timeNextRaw + timeLogic;
-      var timePrev = timeNextRaw + timeLogic;
-
-      return function() {
-        var timeNow = performance.now();
-        var timeDelta = timeNow - timePrev;
-
-        if (timeNow >= timeNext) {
-          // Run update function
-          clickGameProperties.update(timeNow);
-
-          timeNext = timeNow + timeLogic;
-          // timePrev = timeNow;
-
-          setTimeout(clickGameProperties.loopFunction, timeLogic);
-        } else {
-          clickGameProperties.updateDisplay();
-
-          setTimeout(clickGameProperties.loopFunction, timeLogic);
-        }
-      };
-    })()
+    update: function(timeNow, timeDelta) {
+      clickGameProperties.updateLogic(timeNow, timeDelta);
+    }
   };
+  var updateFunction = (function() {
+    var FPS = 60;
+    var timeLogic = 1000 / FPS;
+    var timeNextRaw = performance.now(); // Wow this was affected by spectre
+    var timeNext = timeNextRaw + timeLogic;
+    var timePrev = timeNextRaw + timeLogic;
+
+    return function() {
+      var timeNow = performance.now();
+      var timeDelta = timeNow - timePrev;
+
+      if (timeNow >= timeNext) {
+        // Run update function
+        clickGameProperties.updateLogic(timeNow, timeDelta);
+
+        timeNext = timeNow + timeLogic;
+
+        setTimeout(updateFunction, timeLogic);
+      } else {
+        clickGameProperties.updateDisplay();
+
+        setTimeout(updateFunction, timeLogic);
+      }
+
+      timePrev = timeNow;
+    };
+  })();
   var cookieHelper = {
     get: function() {
       var cookies = {};
@@ -162,14 +179,18 @@ document.addEventListener('DOMContentLoaded', function() {
     (function() {
       var DOMAutoMenu = document.querySelector('.click-auto__menu');
 
+      // Init each modifier
       Object.keys(clickGameProperties.modifiers).forEach(function(key) {
         // DOM
         var DOMAutoMenuItem = document.createElement('li');
         var DOMAutoMenuItemWrapper = document.createElement('a');
-        var DOMAutoMenuItemCount = document.createElement('span');
-        var DOMAutoMenuItemName = document.createElement('span');
+        var DOMAutoMenuItemCount = document.createElement('div');
+        var DOMAutoMenuItemCost = document.createElement('div');
+        var DOMAutoMenuItemName = document.createElement('div');
         // LOGIC
         var modifier = clickGameProperties.modifiers[key];
+
+        modifier.manager = new ClickerModifier(modifier.name, modifier.count, modifier.rate, modifier.cost, modifier.growth);
 
         DOMAutoMenuItem.setAttribute('class', 'click-auto__' + key);
 
@@ -181,16 +202,21 @@ document.addEventListener('DOMContentLoaded', function() {
         DOMAutoMenuItemCount.setAttribute('class', 'click-auto__count');
         DOMAutoMenuItemCount.innerHTML = modifier.count;
 
+        // Create cost
+        DOMAutoMenuItemCost.setAttribute('class', 'click-auto__cost');
+        DOMAutoMenuItemCost.innerHTML = modifier.cost;
+
         // Create name
         DOMAutoMenuItemName.setAttribute('class', 'click-auto__name');
-        DOMAutoMenuItemName.innerHTML = '&nbsp;' + modifier.name;
+        DOMAutoMenuItemName.innerHTML = modifier.name;
 
         // Populate wrapper
-        DOMAutoMenuItemWrapper.append(DOMAutoMenuItemCount);
-        DOMAutoMenuItemWrapper.append(DOMAutoMenuItemName);
+        DOMAutoMenuItem.append(DOMAutoMenuItemCount);
+        DOMAutoMenuItem.append(DOMAutoMenuItemCost);
+        DOMAutoMenuItem.append(DOMAutoMenuItemName);
 
         // Populate item
-        DOMAutoMenuItem.append(DOMAutoMenuItemWrapper);
+        //DOMAutoMenuItem.append(DOMAutoMenuItemWrapper);
 
         // Attach event listener
         DOMAutoMenuItem.addEventListener('click', function(e) {
@@ -205,7 +231,7 @@ document.addEventListener('DOMContentLoaded', function() {
     })();
 
     // Kick off game loop
-    clickGameProperties.loopFunction();
+    updateFunction(clickGameProperties.updateLogic, clickGameProperties.updateDisplay);
   }
 
   // Define the main clicker element

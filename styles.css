@@ -33,3 +33,32 @@ body {
 	font-size: 0;
 	color: transparent;
 }
+
+.click-auto__menu {
+	width: 300px;
+	padding: 0;
+	padding-left: 30px;
+	display: table;
+}
+
+.click-auto__menu li {
+	display: table-row;
+	width: 100%;
+	list-style: none;
+	cursor: pointer;
+}
+
+.click-auto__menu li > * {
+	display: table-cell;
+	text-align: left;
+	padding: 5px;
+}
+
+.click-auto__menu li:hover {
+	background-color: #000;
+	color: #fff;
+}
+
+.click-auto__menu li.expensive {
+	background-color: #d00;
+}
