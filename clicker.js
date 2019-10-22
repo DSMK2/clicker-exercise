@@ -13,9 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
         count: 0,
         rate: 0.01, // Every Second
         cost: 10,
-        growth: function(count) {
-          return 10 + 0.01 * Math.pow(count, 2);
-        },
+        growth: '<cost> + <rate> * <count>^2',
         manager: undefined
       },
       farm: {
@@ -23,9 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
         count: 0,
         rate: 0.1,
         cost: 50,
-        growth: function(count) {
-          return 50 + 0.1 * Math.pow(count, 2);
-        },
+        growth: '<cost> + <rate> * <count>^2',
         manager: undefined
       },
       factory: {
@@ -33,9 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
         count: 0,
         rate: 0.2,
         cost: 100,
-        growth: function(count) {
-          return 100 + 0.2 * Math.pow(count, 2);
-        },
+        growth: '<cost> + <rate> * <count>^2',
         manager: undefined
       },
       office: {
@@ -43,15 +37,22 @@ document.addEventListener('DOMContentLoaded', function() {
         count: 0,
         rate: 0.5,
         cost: 200,
-        growth: function(count) {
-          return 200 + 0.2 * Math.pow(count, 2);
-        },
+        growth: '<cost> + <rate> * <count>^2',
         manager: undefined
       }
+    },
+    modifiersToJSON: function() {
+      Object.keys(clickGameProperties.modifiers).forEach(function(key) {
+        var modifier = clickGameProperties.modifiers(key);
+        var result = {};
+
+        // asdf;
+      });
     },
     modifiersBuy: function(type) {
       var modifier = clickGameProperties.modifiers[type];
 
+      // Must have enough product to buy more modifiers
       if (clickGameProperties.production >= modifier.manager.getCost(0)) {
         clickGameProperties.production -= modifier.manager.getCost(0);
         clickGameProperties.modifiers[type].manager.buy(1);
@@ -66,6 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
         clickGameProperties.production++;
       }
 
+      // Update based on each modifier
       Object.keys(clickGameProperties.modifiers).forEach(function(key) {
         var modifier = clickGameProperties.modifiers[key];
 
@@ -93,8 +95,10 @@ document.addEventListener('DOMContentLoaded', function() {
     },
     update: function(timeNow, timeDelta) {
       clickGameProperties.updateLogic(timeNow, timeDelta);
-    }
+    },
+    saveInterval: undefined
   };
+  // Main loop for clicker game
   var updateFunction = (function() {
     var FPS = 60;
     var timeLogic = 1000 / FPS;
@@ -236,6 +240,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Define the main clicker element
   events: {
+    window.addEventListener('blur', function() {
+      // Whenever the window blurs save content to cookie
+    });
+
     document.getElementById('the_button').addEventListener('click', function(e) {
       e.preventDefault();
       // Pile on clicks
