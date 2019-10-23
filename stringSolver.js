@@ -1,6 +1,11 @@
 /* eslint complexity: off*/
-// PEMDAS
-function solve(equation) {
+/**
+* @function solveEquation
+* @description Solves a equation given as a string in left to right PEMDAS order
+* @param {string} equation Equation to solve
+* @returns {number} The answer
+*/
+function solveEquation(equation) {
   // Break down parenthesis
   var regexPAR = /\((.*?)\)/;
   var regexEXP = /[0-9]+(\^)[0-9]+/;
@@ -25,6 +30,13 @@ function solve(equation) {
     return equation;
   }
 
+  /**
+  * @function solveOperator
+  * @description Solves for operator based on regex
+  * @param {Regex} regex Regular expression to use
+  * @param {string} equation Equation to modify
+  * @returns {string} Solved equation for given operator
+  */
   function solveOperator(regex, equation) {
     var solved;
 
@@ -82,5 +94,3 @@ function solve(equation) {
 
   return equation;
 }
-
-console.log(solve('4^2+(4^3+1)+(5*2)'), Math.pow(4, 2) + (Math.pow(4, 1 + 2) + 1));
