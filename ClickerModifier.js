@@ -1,4 +1,5 @@
 /* eslint complexity: "off", no-invalid-regexp: ["off"] */
+/* globals solveEquation */
 function ClickerModifier(name, count, rate, cost, growth) {
   this.name = name;
   this.count = count;
@@ -17,12 +18,12 @@ ClickerModifier.prototype = {
     // <cost> + <rate> * <count> ^ 2
     // Avoiding eval
 
-    equation = equation.replace('<cost>', this.cost);
+    equation = equation.replace('<cost>', this.cost.start);
     equation = equation.replace('<rate>', this.rate);
     equation = equation.replace('<count>', this.count);
     equation = equation.replace(/\s/g, '');
 
-    return solve(equation);
+    return solveEquation(equation);
   },
   buy: function(count) {
     this.count += count;

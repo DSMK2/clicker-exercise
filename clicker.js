@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var DOMCost = modifier.DOMTarget.querySelector('.click-auto__cost');
 
         DOMCount.innerHTML = modifier.manager.count;
-        DOMCost.innerHTML = modifier.manager.getCost(0).toFixed(2);
+        DOMCost.innerHTML = modifier.manager.getCost(0);
 
         if (clickGameProperties.production < modifier.manager.getCost(0)) {
           modifier.DOMTarget.classList.add('expensive');

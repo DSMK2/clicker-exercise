@@ -79,7 +79,7 @@ function solveEquation(equation) {
   // Solve Parenthesis
   test = regexPAR.exec(equation);
   while (test) {
-    equation = spliceSolvedParts(equation, solve(test[1]), test[0], test.index);
+    equation = spliceSolvedParts(equation, solveEquation(test[1]), test[0], test.index);
     test = regexPAR.exec(equation);
   }
 
