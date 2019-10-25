@@ -2,12 +2,22 @@
 /* globals ClickerModifier */
 // Let's make a clicker for the s&g
 document.addEventListener('DOMContentLoaded', function() {
-  var clickGameProperties = {
-    paused: false,
-    clicks: 0,
-    production: 0,
-    // Starting values
-    modifiers: {
+  var globals = {
+    FPS: 60
+  };
+
+  function ClickGame() {
+    if (ClickGame.main instanceof ClickGame) {
+      return ClickGame.main;
+    }
+
+    this.clicks = 0;
+
+    this.production = 0;
+    this.productionRate = 0;
+    this.productionTotal = 0;
+
+    this.modifiers = {
       clickers: {
         name: 'Auto-Clicker',
         count: 0,
@@ -40,92 +50,113 @@ document.addEventListener('DOMContentLoaded', function() {
         growth: '<cost> + <rate> * <count>^2',
         manager: undefined
       }
-    },
-    modifiersToJSON: function() {
-      Object.keys(clickGameProperties.modifiers).forEach(function(key) {
-        var modifier = clickGameProperties.modifiers(key);
-        var result = {};
+    };
+  }
 
-        // asdf;
+  ClickGame.prototype = {
+    modifierGetData: function() {
+      var result = {};
+
+      Object.keys(this.modifiers).forEach(function(key) {
+        result[key] = this.modifiers[key].manager.getData();
       });
+
+      result['production'] = this.production;
+      result['productionTotal'] = this.productionTotal;
+
+      return result;
     },
     modifiersBuy: function(type) {
-      var modifier = clickGameProperties.modifiers[type];
+      var modifier = this.modifiers[type];
 
       // Must have enough product to buy more modifiers
-      if (clickGameProperties.production >= modifier.manager.getCost(0)) {
-        clickGameProperties.production -= modifier.manager.getCost(0);
-        clickGameProperties.modifiers[type].manager.buy(1);
+      if (this.production >= modifier.manager.getCost(0)) {
+        this.production -= modifier.manager.getCost(0);
+        this.modifiers[type].manager.buy(1);
       }
     },
     updateLogic: function(timeNow, timeDelta) {
-      var DOMProductCounter = document.getElementById('product-counter');
+      var _this = this;
+      var newProduction = 0;
 
       // Drain the clicks queue
-      if (clickGameProperties.clicks !== 0) {
-        clickGameProperties.clicks--;
-        clickGameProperties.production++;
+      while (this.clicks !== 0) {
+        this.clicks--;
+        newProduction++;
       }
 
       // Update based on each modifier
-      Object.keys(clickGameProperties.modifiers).forEach(function(key) {
-        var modifier = clickGameProperties.modifiers[key];
+      Object.keys(this.modifiers).forEach(function(key) {
+        var modifier = _this.modifiers[key];
 
-        clickGameProperties.production += modifier.manager.produce(timeDelta);
+        newProduction += modifier.manager.produce(timeDelta);
       });
 
-      DOMProductCounter.innerHTML = clickGameProperties.production.toFixed(2);
+      this.production += newProduction;
+      this.productionTotal += newProduction;
+      this.productionRate = newProduction * 1000 / timeDelta;
     },
     updateDisplay: function() {
+      var _this = this;
+      var DOMProductCounter = document.getElementById('product-counter');
+      var DOMRate = document.getElementById('product-rate');
+
       // Update each auto-something
-      Object.keys(clickGameProperties.modifiers).forEach(function(key) {
-        var modifier = clickGameProperties.modifiers[key];
+      Object.keys(this.modifiers).forEach(function(key) {
+        var modifier = _this.modifiers[key];
         var DOMCount = modifier.DOMTarget.querySelector('.click-auto__count');
         var DOMCost = modifier.DOMTarget.querySelector('.click-auto__cost');
 
         DOMCount.innerHTML = modifier.manager.count;
         DOMCost.innerHTML = modifier.manager.getCost(0);
 
-        if (clickGameProperties.production < modifier.manager.getCost(0)) {
+        if (_this.production < modifier.manager.getCost(0)) {
           modifier.DOMTarget.classList.add('expensive');
         } else {
           modifier.DOMTarget.classList.remove('expensive');
         }
       });
+
+      DOMProductCounter.innerHTML = this.production.toFixed(2);
+      DOMRate.innerHTML = this.productionRate.toFixed(2);
     },
     update: function(timeNow, timeDelta) {
-      clickGameProperties.updateLogic(timeNow, timeDelta);
-    },
-    saveInterval: undefined
+      this.updateLogic(timeNow, timeDelta);
+    }
   };
+
+  ClickGame.main = new ClickGame();
+
   // Main loop for clicker game
-  var updateFunction = (function() {
-    var FPS = 60;
-    var timeLogic = 1000 / FPS;
-    var timeNextRaw = performance.now(); // Wow this was affected by spectre
-    var timeNext = timeNextRaw + timeLogic;
-    var timePrev = timeNextRaw + timeLogic;
+  var updateLogic = (function() {
+    var timeLogic = 1000 / globals.FPS;
+    var timePrev = 0;
+    var accumulator = 0;
 
     return function() {
       var timeNow = performance.now();
       var timeDelta = timeNow - timePrev;
 
-      if (timeNow >= timeNext) {
+      accumulator += timeDelta;
+
+      if (accumulator >= timeLogic) {
+        accumulator -= timeLogic;
         // Run update function
-        clickGameProperties.updateLogic(timeNow, timeDelta);
-
-        timeNext = timeNow + timeLogic;
-
-        setTimeout(updateFunction, timeLogic);
-      } else {
-        clickGameProperties.updateDisplay();
-
-        setTimeout(updateFunction, timeLogic);
+        ClickGame.main.updateLogic(timeNow, timeDelta);
       }
+
+      setTimeout(updateLogic, timeLogic);
 
       timePrev = timeNow;
     };
   })();
+
+  function updateDisplay() {
+    // Move to request animation frame
+    ClickGame.main.updateDisplay();
+
+    requestAnimationFrame(updateDisplay);
+  }
   var cookieHelper = {
     get: function() {
       var cookies = {};
@@ -184,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var DOMAutoMenu = document.querySelector('.click-auto__menu');
 
       // Init each modifier
-      Object.keys(clickGameProperties.modifiers).forEach(function(key) {
+      Object.keys(ClickGame.main.modifiers).forEach(function(key) {
         // DOM
         var DOMAutoMenuItem = document.createElement('li');
         var DOMAutoMenuItemWrapper = document.createElement('a');
@@ -192,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var DOMAutoMenuItemCost = document.createElement('div');
         var DOMAutoMenuItemName = document.createElement('div');
         // LOGIC
-        var modifier = clickGameProperties.modifiers[key];
+        var modifier = ClickGame.main.modifiers[key];
 
         modifier.manager = new ClickerModifier(modifier.name, modifier.count, modifier.rate, modifier.cost, modifier.growth);
 
@@ -225,7 +256,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Attach event listener
         DOMAutoMenuItem.addEventListener('click', function(e) {
           e.preventDefault();
-          clickGameProperties.modifiersBuy(key);
+          ClickGame.main.modifiersBuy(key);
         });
 
         modifier.DOMTarget = DOMAutoMenuItem;
@@ -234,20 +265,24 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     })();
 
-    // Kick off game loop
-    updateFunction(clickGameProperties.updateLogic, clickGameProperties.updateDisplay);
+    // Kick off logic loop
+    updateLogic(ClickGame.main.updateLogic, ClickGame.main.updateDisplay);
+
+    // Kick off display loop
+    updateDisplay();
   }
 
   // Define the main clicker element
   events: {
     window.addEventListener('blur', function() {
       // Whenever the window blurs save content to cookie
+      //cookieHelper.set('saveData', JSON.stringify(ClickGame.main.modifiersToJSON));
     });
 
     document.getElementById('the_button').addEventListener('click', function(e) {
       e.preventDefault();
       // Pile on clicks
-      clickGameProperties.clicks++;
+      ClickGame.main.clicks++;
     });
   }
 });

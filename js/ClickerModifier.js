@@ -36,5 +36,16 @@ ClickerModifier.prototype = {
   },
   produce: function(timeDelta) {
     return timeDelta / 1000 * this.rate * this.count;
+  },
+  getData: function() {
+    return {
+      name: this.name,
+      count: this.count,
+      rate: this.rate,
+      cost: {
+        start: this.cost.start,
+        growth: this.cost.growth
+      }
+    };
   }
 };

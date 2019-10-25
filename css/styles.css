@@ -6,9 +6,24 @@ html, body {
 	background-color: #8b8e89;
 }
 
-body {
+.float-clear {
+	content: ' ';
+	display: block;
+	clear: both;
+}
+
+body > div {
+	float: left;
+	width: 50%;
+	height: 100%;
 	display: flex;
+}
+
+.clicker-side {
+	display: flex;
+	flex-direction: column;
 	justify-content: center;
+	align-content: center;
 	align-items: center;
 }
 
@@ -19,6 +34,8 @@ body {
 	display: block;
 	font-size: 0;
 	color: transparent;
+	width: 200px;
+	height: 200px;
 }
 
 #the_button:hover {
