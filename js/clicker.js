@@ -54,11 +54,12 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   ClickGame.prototype = {
-    modifierGetData: function() {
+    getData: function() {
+      var _this = this;
       var result = {};
 
       Object.keys(this.modifiers).forEach(function(key) {
-        result[key] = this.modifiers[key].manager.getData();
+        result[key] = _this.modifiers[key].manager.getData();
       });
 
       result['production'] = this.production;
@@ -200,7 +201,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
 
-      document.cookie = options.join(';');
+      Object.keys(options).forEach(function(key) {
+        cookieString += (cookieString.length ? '; ' : '') + key + '=' + options[key];
+      });
+
+      document.cookie = cookieString;
     }
   };
 
@@ -276,7 +281,8 @@ document.addEventListener('DOMContentLoaded', function() {
   events: {
     window.addEventListener('blur', function() {
       // Whenever the window blurs save content to cookie
-      //cookieHelper.set('saveData', JSON.stringify(ClickGame.main.modifiersToJSON));
+      cookieHelper.set('saveData', JSON.stringify(ClickGame.main.getData()));
+      console.log('Game Saved');
     });
 
     document.getElementById('the_button').addEventListener('click', function(e) {
