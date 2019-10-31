@@ -8,7 +8,7 @@
 function solveEquation(equation) {
   // Break down parenthesis
   var regexPAR = /\((.*?)\)/;
-  var regexEXP = /[0-9]+(?:\.[0-9])*(\^)[0-9]+(?:\.[0-9])*/;
+  var regexEXP = /[0-9]+(?:\.[0-9])*(\^)[0-9]+(?:\.[0-9])*/; // Doesn't solve for roots (do we suggest fractional exponents?)
   var regexPD = /[0-9]+(?:\.[0-9])*(\*|\/)[0-9]+(?:\.[0-9])*/;
   var regexAS = /[0-9]+(?:\.[0-9])*(\+|-)[0-9]+(?:\.[0-9])*/;
   var newValue;

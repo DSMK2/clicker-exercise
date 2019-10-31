@@ -47,5 +47,8 @@ ClickerModifier.prototype = {
         growth: this.cost.growth
       }
     };
+  },
+  reset: function() {
+    this.count = 0;
   }
 };

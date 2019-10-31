@@ -54,6 +54,11 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   ClickGame.prototype = {
+    /**
+    * @function getData
+    * @description Gets current state of the click game and returns an Object
+    * @returns {object} Data object containing snapshot of click game
+    */
     getData: function() {
       var _this = this;
       var result = {};
@@ -67,6 +72,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
       return result;
     },
+    /**
+    * @function modifiersBuy
+    * @param {string} type Typeof modifier to buy
+    * @returns {undefined}
+    */
     modifiersBuy: function(type) {
       var modifier = this.modifiers[type];
 
@@ -76,6 +86,13 @@ document.addEventListener('DOMContentLoaded', function() {
         this.modifiers[type].manager.buy(1);
       }
     },
+    /**
+    * @function updateLogic
+    * @description Updates logic
+    * @param  {number} timeNow Current time
+    * @param {number} timeDelta Time since last update
+    * @returns {undefined}
+    */
     updateLogic: function(timeNow, timeDelta) {
       var _this = this;
       var newProduction = 0;
@@ -97,6 +114,11 @@ document.addEventListener('DOMContentLoaded', function() {
       this.productionTotal += newProduction;
       this.productionRate = newProduction * 1000 / timeDelta;
     },
+    /**
+    * @function updateDisplay
+    * @descriptions Updates display
+    * @returns {undefined}
+    */
     updateDisplay: function() {
       var _this = this;
       var DOMProductCounter = document.getElementById('product-counter');
@@ -121,14 +143,31 @@ document.addEventListener('DOMContentLoaded', function() {
       DOMProductCounter.innerHTML = this.production.toFixed(2);
       DOMRate.innerHTML = this.productionRate.toFixed(2);
     },
-    update: function(timeNow, timeDelta) {
-      this.updateLogic(timeNow, timeDelta);
+    /**
+    * @function reset
+    * @description Resets modifiers + production count
+    * @returns {undefined}
+    */
+    reset: function() {
+      var _this = this;
+      this.production = 0;
+      this.clicks = 0;
+
+      Object.keys(this.modifiers).forEach(function(key) {
+        var modifier = _this.modifiers[key];
+
+        modifier.manager.reset();
+      });
     }
   };
 
   ClickGame.main = new ClickGame();
 
-  // Main loop for clicker game
+  /**
+  * @function updateLogic
+  * @description Updates game logic
+  * @returns {undefined}
+  */
   var updateLogic = (function() {
     var timeLogic = 1000 / globals.FPS;
     var timePrev = 0;
@@ -152,12 +191,18 @@ document.addEventListener('DOMContentLoaded', function() {
     };
   })();
 
+  /**
+  * @function updateDisplay
+  * @description Updates display
+  * @returns {undefined}
+  */
   function updateDisplay() {
     // Move to request animation frame
     ClickGame.main.updateDisplay();
 
     requestAnimationFrame(updateDisplay);
   }
+
   var cookieHelper = {
     get: function() {
       var cookies = {};
@@ -279,9 +324,72 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Define the main clicker element
   events: {
+    // Resets the clicker
+    document.querySelector('.menu__item[data-type="new"]').addEventListener('click', function(e) {
+      e.preventDefault();
+
+      ClickGame.main.reset();
+    });
+
+    // Saves clicker progress
+    document.querySelector('.menu__item[data-type="save"]').addEventListener('click', function(e) {
+      var data = JSON.stringify(ClickGame.main.getData());
+      var encoded = encodeURI(btoa(data));
+
+      e.preventDefault();
+
+      cookieHelper.set('saveData', encoded);
+
+      // btoa -> atob
+      document.querySelector('.popup__item--save textarea').value = encoded;
+
+      document.querySelector('.popup').classList.add('popup--active');
+      document.querySelector('.popup__item--save').classList.add('popup__item--active');
+    });
+
+    // Loads clicker progress
+    document.querySelector('.menu__item[data-type="load"]').addEventListener('click', function(e) {
+      e.preventDefault();
+
+      document.querySelector('.popup').classList.add('popup--active');
+      document.querySelector('.popup__item--load').classList.add('popup__item--active');
+    });
+
+    document.querySelector('.popup__item--load button').addEventListener('click', function(e) {
+      var data = document.querySelector('.popup__item--load textarea').value.trim();
+      var decoded = atob(decodeURI(data));
+
+      e.preventDefault();
+
+      document.querySelector('.popup').classList.remove('popup--active');
+      [].slice.call(document.querySelectorAll('.popup__item')).forEach(function(DOMElement) {
+        DOMElement.classList.remove('popup__item--active');
+      });
+    });
+
+    // About
+    document.querySelector('.menu__item[data-type="about"]').addEventListener('click', function(e) {
+      e.preventDefault();
+    });
+
+    // Close popups
+    window.addEventListener('keydown', function(e) {
+      switch (e.which) {
+        case 27:
+          document.querySelector('.popup').classList.remove('popup--active');
+          [].slice.call(document.querySelectorAll('.popup__item')).forEach(function(DOMElement) {
+            DOMElement.classList.remove('popup__item--active');
+          });
+          break;
+      }
+    });
+
     window.addEventListener('blur', function() {
+      var data = JSON.stringify(ClickGame.main.getData());
+      var encoded = encodeURI(btoa(data));
+
       // Whenever the window blurs save content to cookie
-      cookieHelper.set('saveData', JSON.stringify(ClickGame.main.getData()));
+      cookieHelper.set('saveData', encoded);
       console.log('Game Saved');
     });
 
