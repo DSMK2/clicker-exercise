@@ -73,6 +73,23 @@ document.addEventListener('DOMContentLoaded', function() {
       return result;
     },
     /**
+    * @function loadData
+    * @description Sets data for Click Game and modifiers
+    * @param {object} data JSON data
+    * @returns {undefined}
+    */
+    loadData: function(data) {
+      var _this = this;
+
+      this.production = data.production;
+      this.productionTotal = data.productionTotal;
+
+      Object.keys(this.modifiers).forEach(function(key) {
+        var modifier = _this.modifiers[key];
+        modifier.manager.set(data[key].count);
+      });
+    },
+    /**
     * @function modifiersBuy
     * @param {string} type Typeof modifier to buy
     * @returns {undefined}
@@ -365,11 +382,16 @@ document.addEventListener('DOMContentLoaded', function() {
       [].slice.call(document.querySelectorAll('.popup__item')).forEach(function(DOMElement) {
         DOMElement.classList.remove('popup__item--active');
       });
+
+      ClickGame.main.loadData(JSON.parse(decoded));
     });
 
     // About
     document.querySelector('.menu__item[data-type="about"]').addEventListener('click', function(e) {
       e.preventDefault();
+
+      document.querySelector('.popup').classList.add('popup--active');
+      document.querySelector('.popup__item--about').classList.add('popup__item--active');
     });
 
     // Close popups
@@ -393,7 +415,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('Game Saved');
     });
 
-    document.getElementById('the_button').addEventListener('click', function(e) {
+    document.querySelector('.clicker-side').addEventListener('click', function(e) {
       e.preventDefault();
       // Pile on clicks
       ClickGame.main.clicks++;
