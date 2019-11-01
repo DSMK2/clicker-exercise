@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     this.clicks = 0;
-
     this.production = 0;
     this.productionRate = 0;
     this.productionTotal = 0;
@@ -51,6 +50,8 @@ document.addEventListener('DOMContentLoaded', function() {
         manager: undefined
       }
     };
+
+    return this;
   }
 
   ClickGame.prototype = {
@@ -139,6 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateDisplay: function() {
       var _this = this;
       var DOMProductCounter = document.getElementById('product-counter');
+      var DOMProductTotal = document.getElementById('product-total-counter');
       var DOMRate = document.getElementById('product-rate');
 
       // Update each auto-something
@@ -148,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var DOMCost = modifier.DOMTarget.querySelector('.click-auto__cost');
 
         DOMCount.innerHTML = modifier.manager.count;
-        DOMCost.innerHTML = modifier.manager.getCost(0);
+        DOMCost.innerHTML = Math.round(modifier.manager.getCost(0)).toFixed(2);
 
         if (_this.production < modifier.manager.getCost(0)) {
           modifier.DOMTarget.classList.add('expensive');
@@ -158,6 +160,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
 
       DOMProductCounter.innerHTML = this.production.toFixed(2);
+      DOMProductTotal.innerHTML = this.productionTotal.toFixed(2);
       DOMRate.innerHTML = this.productionRate.toFixed(2);
     },
     /**
@@ -199,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (accumulator >= timeLogic) {
         accumulator -= timeLogic;
         // Run update function
-        ClickGame.main.updateLogic(timeNow, timeDelta);
+        ClickGame().updateLogic(timeNow, timeDelta);
       }
 
       setTimeout(updateLogic, timeLogic);
@@ -215,9 +218,36 @@ document.addEventListener('DOMContentLoaded', function() {
   */
   function updateDisplay() {
     // Move to request animation frame
-    ClickGame.main.updateDisplay();
+    ClickGame().updateDisplay();
 
     requestAnimationFrame(updateDisplay);
+  }
+
+  /**
+  * @function saveClicker
+  * @description Helper function for saving clicker data
+  * @returns {string} URI encoded base64 save data
+  */
+  function saveClicker() {
+    var data = JSON.stringify(ClickGame().getData());
+    var encoded = encodeURI(btoa(data));
+    cookieHelper.set('saveData', encoded);
+
+    return encoded;
+  }
+
+  /**
+  * @function loadClicker
+  * @description Helper function for loading clicker data
+  * @param {string} data URI encoded base64 save data
+  * @returns {undefined}
+  */
+  function loadClicker(data) {
+    if (typeof data !== 'string') {
+      return;
+    }
+
+    ClickGame().loadData(JSON.parse(atob(decodeURI(data))));
   }
 
   var cookieHelper = {
@@ -271,10 +301,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
 
+  ////////////////////////////////////////////////////////////////////////
+  // BEGIN: Init
+  ////////////////////////////////////////////////////////////////////////
   init: {
     // Get previous session
     (function() {
       var cookie = cookieHelper.get();
+
+      loadClicker(cookie['saveData']);
     })();
 
     // Populate auto clicker menu w/modifier
@@ -282,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var DOMAutoMenu = document.querySelector('.click-auto__menu');
 
       // Init each modifier
-      Object.keys(ClickGame.main.modifiers).forEach(function(key) {
+      Object.keys(ClickGame().modifiers).forEach(function(key) {
         // DOM
         var DOMAutoMenuItem = document.createElement('li');
         var DOMAutoMenuItemWrapper = document.createElement('a');
@@ -290,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var DOMAutoMenuItemCost = document.createElement('div');
         var DOMAutoMenuItemName = document.createElement('div');
         // LOGIC
-        var modifier = ClickGame.main.modifiers[key];
+        var modifier = ClickGame().modifiers[key];
 
         modifier.manager = new ClickerModifier(modifier.name, modifier.count, modifier.rate, modifier.cost, modifier.growth);
 
@@ -323,7 +358,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Attach event listener
         DOMAutoMenuItem.addEventListener('click', function(e) {
           e.preventDefault();
-          ClickGame.main.modifiersBuy(key);
+          ClickGame().modifiersBuy(key);
         });
 
         modifier.DOMTarget = DOMAutoMenuItem;
@@ -333,32 +368,32 @@ document.addEventListener('DOMContentLoaded', function() {
     })();
 
     // Kick off logic loop
-    updateLogic(ClickGame.main.updateLogic, ClickGame.main.updateDisplay);
+    updateLogic(ClickGame().updateLogic, ClickGame().updateDisplay);
 
     // Kick off display loop
     updateDisplay();
   }
+  ////////////////////////////////////////////////////////////////////////
+  // END: Init
+  ////////////////////////////////////////////////////////////////////////
 
-  // Define the main clicker element
+  ////////////////////////////////////////////////////////////////////////
+  // BEGIN: Events
+  ////////////////////////////////////////////////////////////////////////
   events: {
     // Resets the clicker
     document.querySelector('.menu__item[data-type="new"]').addEventListener('click', function(e) {
       e.preventDefault();
 
-      ClickGame.main.reset();
+      ClickGame().reset();
     });
 
     // Saves clicker progress
     document.querySelector('.menu__item[data-type="save"]').addEventListener('click', function(e) {
-      var data = JSON.stringify(ClickGame.main.getData());
-      var encoded = encodeURI(btoa(data));
-
       e.preventDefault();
 
-      cookieHelper.set('saveData', encoded);
-
       // btoa -> atob
-      document.querySelector('.popup__item--save textarea').value = encoded;
+      document.querySelector('.popup__item--save textarea').value = saveClicker();
 
       document.querySelector('.popup').classList.add('popup--active');
       document.querySelector('.popup__item--save').classList.add('popup__item--active');
@@ -374,7 +409,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.querySelector('.popup__item--load button').addEventListener('click', function(e) {
       var data = document.querySelector('.popup__item--load textarea').value.trim();
-      var decoded = atob(decodeURI(data));
 
       e.preventDefault();
 
@@ -383,7 +417,7 @@ document.addEventListener('DOMContentLoaded', function() {
         DOMElement.classList.remove('popup__item--active');
       });
 
-      ClickGame.main.loadData(JSON.parse(decoded));
+      loadClicker(data);
     });
 
     // About
@@ -406,19 +440,18 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
 
+    // Whenever the window blurs save content to cookie
     window.addEventListener('blur', function() {
-      var data = JSON.stringify(ClickGame.main.getData());
-      var encoded = encodeURI(btoa(data));
-
-      // Whenever the window blurs save content to cookie
-      cookieHelper.set('saveData', encoded);
-      console.log('Game Saved');
+      cookieHelper.set('saveData', saveClicker());
     });
 
     document.querySelector('.clicker-side').addEventListener('click', function(e) {
       e.preventDefault();
       // Pile on clicks
-      ClickGame.main.clicks++;
+      ClickGame().clicks++;
     });
   }
+  ////////////////////////////////////////////////////////////////////////
+  // END: Events
+  ////////////////////////////////////////////////////////////////////////
 });
