@@ -1,5 +1,5 @@
 /* eslint no-unused-labels: "off" */
-/* globals ClickerModifier */
+/* globals ClickerModifier, Update */
 // Let's make a clicker for the s&g
 document.addEventListener('DOMContentLoaded', function() {
   var globals = {
@@ -188,6 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
   * @description Updates game logic
   * @returns {undefined}
   */
+  /*
   var updateLogic = (function() {
     var timeLogic = 1000 / globals.FPS;
     var timePrev = 0;
@@ -210,18 +211,21 @@ document.addEventListener('DOMContentLoaded', function() {
       timePrev = timeNow;
     };
   })();
+  */
 
   /**
   * @function updateDisplay
   * @description Updates display
   * @returns {undefined}
   */
+  /*
   function updateDisplay() {
     // Move to request animation frame
     ClickGame().updateDisplay();
 
     requestAnimationFrame(updateDisplay);
   }
+  */
 
   /**
   * @function saveClicker
@@ -368,10 +372,14 @@ document.addEventListener('DOMContentLoaded', function() {
     })();
 
     // Kick off logic loop
-    updateLogic(ClickGame().updateLogic, ClickGame().updateDisplay);
+    Update.logic(function(t1, t2) {
+      ClickGame().updateLogic(t1, t2);
+    }).start();
 
     // Kick off display loop
-    updateDisplay();
+    Update.display(function() {
+      ClickGame().updateDisplay();
+    }).start();
   }
   ////////////////////////////////////////////////////////////////////////
   // END: Init
