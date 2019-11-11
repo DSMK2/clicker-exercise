@@ -148,9 +148,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var modifier = _this.modifiers[key];
         var DOMCount = modifier.DOMTarget.querySelector('.click-auto__count');
         var DOMCost = modifier.DOMTarget.querySelector('.click-auto__cost');
+        var cost = parseFloat(modifier.manager.getCost(0));
 
         DOMCount.innerHTML = modifier.manager.count;
-        DOMCost.innerHTML = Math.round(modifier.manager.getCost(0)).toFixed(2);
+        DOMCost.innerHTML = cost.toFixed(2);
 
         if (_this.production < modifier.manager.getCost(0)) {
           modifier.DOMTarget.classList.add('expensive');

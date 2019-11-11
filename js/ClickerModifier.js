@@ -15,6 +15,7 @@ function ClickerModifier(name, count, rate, cost, growth) {
 ClickerModifier.prototype = {
   getCost: function(count) {
     var equation = this.cost.growth;
+    var answer;
     // <cost> + <rate> * <count> ^ 2
     // Avoiding eval
 
@@ -23,7 +24,8 @@ ClickerModifier.prototype = {
     equation = equation.replace('<count>', this.count);
     equation = equation.replace(/\s/g, '');
 
-    return solveEquation(equation);
+    answer = solveEquation(equation);
+    return answer;
   },
   buy: function(count) {
     this.count += count;
