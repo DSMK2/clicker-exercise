@@ -95,7 +95,7 @@ BigNumber.prototype = {
 
     return this.num;
   },
-  getString: function() {
+  getString: function(shorten) {
     var resultString = '';
     var numCopy = this.num.slice(0);
 
@@ -145,9 +145,9 @@ BigNumber.prototype = {
       if (num >= 20) {
         hundreds = Math.floor(num / 100);
         tens = Math.floor((num - hundreds * 100) / 10);
-        ones = underTwentyString[num - hundreds * 100 - tens * 10];
+        ones = underTwentyString[num - hundreds * 100 + (tens >= 1 ? 0 : -1 * tens * 10)];
 
-        result = (hundreds === 0 ? '' : underTwentyString[hundreds] + ' hundred ') + tenString[tens] + '-' + ones;
+        result = (hundreds === 0 ? '' : underTwentyString[hundreds] + ' hundred') + ' and' + tenString[tens] + (tenString[tens].length !== 0 && ones.length !== 0 ? '-' : ' ') + ones;
       } else {
         result = underTwentyString[num];
       }
@@ -158,28 +158,38 @@ BigNumber.prototype = {
     console.log(numCopy);
 
     // Collect the first two places and combine it
-    (function() {
-      var tensOnes = numCopy.splice(0, 2);
-      var result = tensOnes[0].count + tensOnes[1].count * 10;
-      console.log(tensOnes);
-      numCopy.unshift({name: '', count: result});
+    if (shorten) {
+      (function() {
+        var nums = numCopy.reverse().filter(function(element) {
+          return element.count !== 0;
+        });
 
-      console.log(tensOnes[0].count, tensOnes[1].count, result);
-    })();
+        resultString += nums[0].count + '.' + (nums[1].count / 100 * 100) + ' ' + nums[0].name;
+      })();
+    } else {
+      (function() {
+        var tensOnes = numCopy.splice(0, 2);
+        var result = tensOnes[0].count + tensOnes[1].count * 10;
+        console.log(tensOnes);
+        numCopy.unshift({name: '', count: result});
 
-    numCopy.reverse().forEach(function(element, index) {
-      if (element.count === 0) {
-        return;
-      }
-      console.log('count: ' + getCountString(element.count), 'name: ' + element.name);
-      resultString += (numCopy.length === index + 1 ? ' and ' : ' ') + getCountString(element.count) + ' ' + element.name;
-    });
+        console.log(tensOnes[0].count, tensOnes[1].count, result);
+      })();
+
+      numCopy.reverse().forEach(function(element, index) {
+        if (element.count === 0) {
+          return;
+        }
+        console.log('count: ' + getCountString(element.count), 'name: ' + element.name);
+        resultString += (numCopy[numCopy.length - 2].count !== 0 && numCopy.length === index + 1 ? ' and ' : ' ') + getCountString(element.count) + ' ' + element.name;
+      });
+    }
     console.log(numCopy);
     return resultString;
   }
 };
 
 var test = new BigNumber();
-test.set(523123);
+test.set(111001);
 console.log(test.num);
 console.log(test.getString());
